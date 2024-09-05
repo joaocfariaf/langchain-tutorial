@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 import heapq
 from langchain_openai import ChatOpenAI
 
@@ -16,6 +16,7 @@ DEFAULT_MODEL = ChatOpenAI(
     base_url="http://localhost:1234/v1",
     api_key="lm-studio",
     model="LoneStriker/Starling-LM-7B-beta-GGUF",
+    temperature=0.1
 )
 
 
@@ -79,6 +80,20 @@ class chatBotManager():
             sessions = sessionManager()
         self.session_manager = sessions
 
+    def _formattedStreamAI(
+            self, 
+            humanInput: str | list[BaseMessage], 
+            config: Dict
+        ) -> None:
+            
+            print(f'\n    AI: ', end='')
+            for chunk in self.with_message_history.stream(
+                humanInput,
+                config=config
+            ):
+                print(chunk.content, end='')
+            print(f'\n\n HUMAN: ', end='')
+
     def start_chating(
             self, 
             user_name: Optional[str] = 'somebody', 
@@ -95,27 +110,39 @@ class chatBotManager():
                 "session_id":session_id
         }}
 
-        with_message_history = RunnableWithMessageHistory(
+        self.with_message_history = RunnableWithMessageHistory(
             self.model, 
             self.session_manager.get_session_history,
         )
         
         # Simple test
-        response = with_message_history.invoke(
-            [HumanMessage(content="Hi! I'm Bob")],
-            config=config,
+        initialMessages = [
+            SystemMessage(
+                content="""
+                You are a very polite assistant. Answer with the best maners.
+                Also, you are a brazillian portuguese native speaker. 
+                So, you should respond in brazilian portuguese.
+                """
+            ),
+            HumanMessage(
+                content=
+                """
+                Olá, apresente-se com no máximo 20 palavras.
+                Comece com uma saudação ao usuário, por exemplo: \'Olá Sr(a)., espero que esteja bem!\'.
+                """
+            ),
+        ]
+        
+        self._formattedStreamAI(
+            humanInput=initialMessages,
+            config=config
         )
 
-        input(response.content)
-
-        response = with_message_history.invoke(
-            [HumanMessage(content="What's my name?")],
-            config=config,
-        )
-
-        print(response.content)
-
-        pass
-
+        while True:
+            self._formattedStreamAI(
+                humanInput= input(),
+                config=config
+            )   
+    
 
 cb = chatBotManager().start_chating()
