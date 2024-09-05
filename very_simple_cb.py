@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 
-model = ChatOpenAI(
+chain = ChatOpenAI(
     base_url="http://localhost:1234/v1",
     api_key="lm-studio",
     model="LoneStriker/Starling-LM-7B-beta-GGUF",
@@ -8,26 +8,58 @@ model = ChatOpenAI(
 )
 
 
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 
 initialMessages = [
     SystemMessage(content="You are a very polite assistant. Answer with the best maners."),
-    HumanMessage(content="Hi, introduce me yourself in 10 words at most."),
+    HumanMessage(content="Hi, introduce me yourself in 10 words at most. Start with a greeting to the user, like \'Hello Sir/Madam\'."),
 ]
 
-def printAI(message: str):
-    print(f'\n    AI: {message}')
-    print(f'\n HUMAN: ', end='')
+def formattedStreamAI(humanInput: str | list[BaseMessage]):
+    print(f'\n    AI: ', end='')
+    for chunk in chain.stream(humanInput):
+        print(chunk.content, end='')
+    print(f'\n\n HUMAN: ', end='')
+
 
 # Starts conversation
-printAI(model.invoke(initialMessages).content)
+formattedStreamAI(initialMessages)
 
 while True:
-    humanMessage = input()
-    printAI(model.invoke(humanMessage).content)
-    # Streams response 
-    #for chunk in model.stream(humanMessage):
-    #    print(chunk.content, end='')
-    continue
+    formattedStreamAI(input())
+    break
+
+# Messagge History
+from langchain_core.chat_history import (
+    BaseChatMessageHistory,
+    InMemoryChatMessageHistory,
+)
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
+sessions_memo = {}
+
+def get_session_history(session_id:str) -> BaseChatMessageHistory:
+    '''
+    If the session is already in the memory, returns its stored history. 
+    Otherwise, stores the current session in the memo, and returns the given information.
+    '''
+    if session_id not in sessions_memo:
+        sessions_memo[session_id] = InMemoryChatMessageHistory()
+    return sessions_memo[session_id]
+
+with_message_history = RunnableWithMessageHistory(chain, get_session_history)
+
+config = {
+    "configurable":{
+        "session_id":"abc1"
+}}
+
+
+response = with_message_history.invoke(
+    [initialMessages],
+    config=config
+)
+
+
 
 
