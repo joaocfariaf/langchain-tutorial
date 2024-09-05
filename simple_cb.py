@@ -1,6 +1,14 @@
 from typing import Optional, Any, Dict
 import heapq
 from langchain_openai import ChatOpenAI
+# Server
+from fastapi import FastAPI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+from langserve import add_routes
+import uvicorn
+
 
 # Messages kinds
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -16,7 +24,6 @@ DEFAULT_MODEL = ChatOpenAI(
     base_url="http://localhost:1234/v1",
     api_key="lm-studio",
     model="LoneStriker/Starling-LM-7B-beta-GGUF",
-    temperature=0.1
 )
 
 
@@ -94,7 +101,7 @@ class chatBotManager():
                 print(chunk.content, end='')
             print(f'\n\n HUMAN: ', end='')
 
-    def start_chating(
+    def start_local_chating(
             self, 
             user_name: Optional[str] = 'somebody', 
             session_number: Optional[int] = None
@@ -145,4 +152,90 @@ class chatBotManager():
             )   
     
 
-cb = chatBotManager().start_chating()
+    def lang_server_chat(            
+            self, 
+            user_name: Optional[str] = 'somebody', 
+            session_number: Optional[int] = None
+        ) -> None:
+
+        if session_number == None:
+            session_id = self.session_manager.create_session(user_name)
+        else:
+            session_id = f'{user_name}-{session_number}'
+
+        config = {
+            "configurable":{
+                "session_id":session_id
+        }}
+
+        self.with_message_history = RunnableWithMessageHistory(
+            self.model, 
+            self.session_manager.get_session_history,
+        )
+        
+        # Simple test
+        initialMessages = [
+            SystemMessage(
+                content="""
+                You are a very polite assistant. Answer with the best maners.
+                Also, you are a brazillian portuguese native speaker. 
+                So, you should respond in brazilian portuguese.
+                """
+            ),
+            HumanMessage(
+                content=
+                """
+                Olá, apresente-se com no máximo 20 palavras.
+                Comece com uma saudação ao usuário, por exemplo: \'Olá Sr(a)., espero que esteja bem!\'.
+                """
+            ),
+        ]
+        
+        app = FastAPI(
+            title="LangChain Server",
+            version="1.0",
+            description="A simple API server using LangChain's Runnable interfaces",
+        )
+
+        # 5. Adding chain route
+        add_routes(
+            app,
+            self.with_message_history,
+            path="/chain",
+        )
+
+        uvicorn.run(app, host="localhost", port=8000)
+    
+#cb = chatBotManager().start_local_chating()
+
+if __name__ == "__main__":
+    chatBotManager().lang_server_chat()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

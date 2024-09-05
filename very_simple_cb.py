@@ -27,7 +27,7 @@ formattedStreamAI(initialMessages)
 
 while True:
     formattedStreamAI(input())
-    break
+    break   
 
 # Messagge History
 from langchain_core.chat_history import (
