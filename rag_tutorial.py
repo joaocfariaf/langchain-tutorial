@@ -13,14 +13,8 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-# LM STUDIO EMBEDDING
-def get_embedding(text, model="CompendiumLabs/bge-large-en-v1.5-gguf"):
-   text = text.replace("\n", " ")
-   return llm.embeddings.create(input = [text], model=model).data[0].embedding
-
 
 # 1. Load, chunk and index the contents of the blog to create a retriever.
 loader = WebBaseLoader(
@@ -37,11 +31,8 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 splits = text_splitter.split_documents(docs)
 vectorstore = Chroma.from_documents(
    documents=splits, 
-   embedding=OpenAIEmbeddings(    
-        base_url="http://localhost:1234/v1",
-        api_key="lm-studio",
-        model="CompendiumLabs/bge-large-en-v1.5-gguf",
-    ))
+   embedding=GPT4AllEmbeddings()
+)
 retriever = vectorstore.as_retriever()
 
 

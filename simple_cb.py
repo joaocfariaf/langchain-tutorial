@@ -9,6 +9,14 @@ from langchain_openai import ChatOpenAI
 from langserve import add_routes
 import uvicorn
 
+# RAG
+import bs4
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_chroma import Chroma
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.embeddings import GPT4AllEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Messages kinds
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -87,12 +95,87 @@ class chatBotManager():
             sessions = sessionManager()
         self.session_manager = sessions
 
+    def _read_web_page(self, config):
+        
+        # UI
+        print(f'\n    AI: OK, vou ler uma página web para você. Digite a URL.')
+        url = input(f'\n HUMAN: ')
+        print(f'\n    AI: 1 minuto, estou lendo tudo e interpretando...', end='')
+        
+        # 1. Load, chunk and index the contents of the blog to create a retriever.
+        loader = WebBaseLoader(
+            web_paths=(url,),
+            bs_kwargs=dict(
+                parse_only=bs4.SoupStrainer(
+                    class_=("post-content", "post-title", "post-header")
+                )
+            ),
+        )
+        docs = loader.load()
+
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        splits = text_splitter.split_documents(docs)
+        vectorstore = Chroma.from_documents(
+            documents=splits, 
+            embedding=GPT4AllEmbeddings()
+        )
+        retriever = vectorstore.as_retriever()
+
+        # 2. Incorporate the retriever into a question-answering chain.
+        system_prompt = (
+            """
+            A partir de agora, considere o seguinte contexto para responder ao usuário:
+            {context}
+            """
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                ("human", "{input}"),
+            ]
+        )
+
+        question_answer_chain = create_stuff_documents_chain(self.model, prompt)
+        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+
+
+        self.with_message_history = RunnableWithMessageHistory(
+            rag_chain, 
+            self.session_manager.get_session_history,
+        )
+                
+        # Simple test
+        initialMessages = [
+            SystemMessage(
+                content="""
+                You are a very polite assistant. Answer with the best maners.
+                Also, you are a brazillian portuguese native speaker. 
+                So, you should respond in brazilian portuguese.
+                """
+            ),
+        ]
+        
+        self.with_message_history.invoke(initialMessages, config=config)
+
+
+        # UI
+        print(f'OK, já terminei de ler tudo. pode me fazer perguntar sobre isso agora.')
+        print(f'\n\n HUMAN: ', end='')
+        pass
+
     def _formattedStreamAI(
             self, 
             humanInput: str | list[BaseMessage], 
             config: Dict
         ) -> None:
             
+            if humanInput[0] == '\\':
+                command = humanInput[1:]
+                input(f'self._{command}(config)')
+                exec(f'self._{command}(config)')
+                return
+
             print(f'\n    AI: ', end='')
             for chunk in self.with_message_history.stream(
                 humanInput,
@@ -151,7 +234,6 @@ class chatBotManager():
                 config=config
             )   
     
-
     def lang_server_chat(            
             self, 
             user_name: Optional[str] = 'somebody', 
@@ -209,7 +291,7 @@ class chatBotManager():
 #cb = chatBotManager().start_local_chating()
 
 if __name__ == "__main__":
-    chatBotManager().lang_server_chat()
+    chatBotManager().start_local_chating()
 
 
 
