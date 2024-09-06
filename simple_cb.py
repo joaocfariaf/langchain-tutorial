@@ -3,7 +3,7 @@ import heapq
 from langchain_openai import ChatOpenAI
 # Server
 from fastapi import FastAPI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langserve import add_routes
@@ -17,6 +17,8 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain import hub
+from langchain_core.runnables import RunnablePassthrough
 
 # Messages kinds
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -82,7 +84,9 @@ class sessionManager:
 
         return session_id
 
-    
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
 class chatBotManager():
     def __init__(
             self, 
@@ -119,32 +123,37 @@ class chatBotManager():
             documents=splits, 
             embedding=GPT4AllEmbeddings()
         )
+        
+        # Retrieve and generate using the relevant snippets of the blog.
         retriever = vectorstore.as_retriever()
-
-        # 2. Incorporate the retriever into a question-answering chain.
-        system_prompt = (
-            """
-            A partir de agora, considere o seguinte contexto para responder ao usuário:
-            {context}
-            """
+        rag_sys_prompt = (
+            "Use the following pieces of retrieved context to answer the question." 
+            "If you don't know the answer, just say that you don't know."
+            "Use three sentences maximum and keep the answer concise."
+            "Context: {context}"
         )
-
-        prompt = ChatPromptTemplate.from_messages(
+        
+        rag_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt),
+                ("system", rag_sys_prompt),
+                MessagesPlaceholder(variable_name='history'),
                 ("human", "{input}"),
             ]
         )
 
-        question_answer_chain = create_stuff_documents_chain(self.model, prompt)
-        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-
+        rag_chain = (
+            {"context": retriever | format_docs, "question": RunnablePassthrough()}
+            | rag_prompt
+            | self.model
+        )
 
         self.with_message_history = RunnableWithMessageHistory(
             rag_chain, 
             self.session_manager.get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
         )
-                
+        '''                
         # Simple test
         initialMessages = [
             SystemMessage(
@@ -157,7 +166,7 @@ class chatBotManager():
         ]
         
         self.with_message_history.invoke(initialMessages, config=config)
-
+        '''
 
         # UI
         print(f'OK, já terminei de ler tudo. pode me fazer perguntar sobre isso agora.')
@@ -178,7 +187,7 @@ class chatBotManager():
 
             print(f'\n    AI: ', end='')
             for chunk in self.with_message_history.stream(
-                humanInput,
+                {"input": humanInput},
                 config=config
             ):
                 print(chunk.content, end='')
@@ -203,6 +212,8 @@ class chatBotManager():
         self.with_message_history = RunnableWithMessageHistory(
             self.model, 
             self.session_manager.get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
         )
         
         # Simple test
@@ -223,10 +234,10 @@ class chatBotManager():
             ),
         ]
         
-        self._formattedStreamAI(
-            humanInput=initialMessages,
-            config=config
-        )
+        #self._formattedStreamAI(
+        #    humanInput=initialMessages,
+        #    config=config
+        #)
 
         while True:
             self._formattedStreamAI(
