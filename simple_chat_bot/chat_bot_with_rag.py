@@ -9,7 +9,7 @@ import bs4
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import WebBaseLoader, TextLoader
 from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.runnables import RunnablePassthrough
@@ -17,11 +17,9 @@ from langchain_core.runnables import RunnablePassthrough
 
 class chatBotWithRAG(chatBot):
     def _read_web_page(self, config):
-        
-        # UI
-        print(f'\n    AI: OK, vou ler uma página web para você. Digite a URL.')
+
         url = input(f'\n HUMAN: ')
-        print(f'\n    AI: 1 minuto, estou lendo tudo e interpretando...', end='')
+
         
         # 1. Load, chunk and index the contents of the blog to create a retriever.
         loader = WebBaseLoader(
@@ -43,6 +41,7 @@ class chatBotWithRAG(chatBot):
         
         # Retrieve and generate using the relevant snippets of the blog.
         retriever = vectorstore.as_retriever()
+        
         rag_sys_prompt = (
             "Use the following pieces of retrieved context to answer the question." 
             "If you don't know the answer, just say that you don't know."
