@@ -1,6 +1,9 @@
 
 from chat_bot import chatBot
 
+from typing import Dict
+
+
 # RAG
 import bs4
 from langchain.chains import create_retrieval_chain
@@ -87,124 +90,8 @@ class chatBotWithRAG(chatBot):
         print(f'\n\n HUMAN: ', end='')
         pass
 
-    def _formattedStreamAI(
-            self, 
-            humanInput: str | list[BaseMessage], 
-            config: Dict
-        ) -> None:
-            
-            #if humanInput[0] == '\\':
-            #    command = humanInput[1:]
-            #    input(f'self._{command}(config)')
-            #    exec(f'self._{command}(config)')
-            #    return
+    def _read_from_pdf_docs(self):
+        pass
 
-            print(f'\n    AI: ', end='')
-            for chunk in self.with_message_history.stream(
-                {"input": humanInput},
-                config=config
-            ):
-                print(chunk.content, end='')
-            print(f'\n\n HUMAN: ', end='')
 
-    def chat_in_terminal(
-            self, 
-            user_name: Optional[str] = 'somebody', 
-            session_number: Optional[int] = None
-        ) -> None:
-
-        if session_number == None:
-            session_id = self.sessions_history.create_session(user_name)
-        else:
-            session_id = f'{user_name}-{session_number}'
-
-        config = {
-            "configurable":{
-                "session_id":session_id
-        }}
-
-        self.with_message_history = RunnableWithMessageHistory(
-            self.model, 
-            self.sessions_history.get_session_history,
-            #input_messages_key="input",
-            #history_messages_key="history",
-        )
-        
-        # Simple test
-        initialMessages = [
-            SystemMessage(
-                content="""
-                You are a very polite assistant. Answer with the best maners.
-                Also, you are a brazillian portuguese native speaker. 
-                So, you should respond in brazilian portuguese.
-                """
-            ),
-            HumanMessage(
-                content=
-                """
-                Olá, apresente-se com no máximo 20 palavras.
-                Comece com uma saudação ao usuário, por exemplo: \'Olá Sr(a)., espero que esteja bem!\'.
-                """
-            ),
-        ]
-        
-        self._formattedStreamAI(
-            humanInput=initialMessages,
-            config=config
-        )
-
-        while True:
-            self._formattedStreamAI(
-                humanInput= input(),
-                config=config
-            )   
-
-    def config_chain_with_history(
-            self, 
-            user_name: Optional[str] = 'somebody', 
-            session_number: Optional[int] = None
-        ) -> None:
-
-        if session_number == None:
-            session_id = self.sessions_history.create_session(user_name)
-        else:
-            session_id = f'{user_name}-{session_number}'
-
-        config = {
-            "configurable":{
-                "session_id":session_id
-        }}
-
-        self.config = config
-
-        self.with_message_history = RunnableWithMessageHistory(
-            self.model, 
-            self.sessions_history.get_session_history,
-            #input_messages_key="input",
-            #history_messages_key="history",
-        )
-        
-        # Simple test
-        initialMessages = [
-            SystemMessage(
-                content="""
-                You are a very polite assistant. Answer with the best maners.
-                Also, you are a brazillian portuguese native speaker. 
-                So, you should respond in brazilian portuguese.
-                """
-            ),
-            HumanMessage(
-                content=
-                """
-                Olá, apresente-se com no máximo 20 palavras.
-                Comece com uma saudação ao usuário, por exemplo: \'Olá Sr(a)., espero que esteja bem!\'.
-                """
-            ),
-        ]
-        
-        self.with_message_history.invoke(
-            initialMessages,
-            config=config
-        )
-    
 

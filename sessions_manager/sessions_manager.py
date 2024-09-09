@@ -18,7 +18,7 @@ class userSessionNumberManager:
             return self.session_count
 
 
-class sessionsHistory:
+class sessionsManager:
     def __init__(self) -> None:
         self.id_manager = {}
         self.memo = {}

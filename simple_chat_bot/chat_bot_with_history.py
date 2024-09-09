@@ -4,9 +4,9 @@ from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from chat_bot import chatBot, DEFAULT_MODEL
-from sessions_history import sessionsHistory
+from sessions_manager.sessions_manager import sessionsManager
 
-DEFAULT_SYSTEM_MESSAGE = (
+DEFAULT_INITIAL_SYS_MSG = (
     "You are a very polite assistant. Answer with the best maners."
     "Also, you are a brazillian portuguese native speaker." 
     "So, you should respond in brazilian portuguese."
@@ -17,7 +17,7 @@ DEFAULT_SYSTEM_MESSAGE = (
 class chatBotWithHistory(chatBot):
     def __init__(
         self, 
-        sessions_history: Optional[sessionsHistory] = None,
+        sessions_history: Optional[sessionsManager] = None,
         user_name: Optional[str] = 'somebody', 
         session_number: Optional[int] = None,
         model: Optional[ChatOpenAI] = DEFAULT_MODEL,
@@ -25,7 +25,7 @@ class chatBotWithHistory(chatBot):
     
         if sessions_history == None:
             Warning('No sessions history has been passed. Creating a new one.')
-            sessions_history = sessionsHistory()
+            sessions_history = sessionsManager()
         self.sessions_history = sessions_history
 
         self._set_model(model)
@@ -78,7 +78,7 @@ class chatBotWithHistory(chatBot):
     def send_default_initial_messages(self, hidden=True):
         initialMessages = [
             SystemMessage(
-                content=DEFAULT_SYSTEM_MESSAGE
+                content=DEFAULT_INITIAL_SYS_MSG
             ),
             HumanMessage(
                 content=
