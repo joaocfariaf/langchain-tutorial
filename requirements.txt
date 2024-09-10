@@ -9,3 +9,7 @@ langchain-openai==0.1.23
 langchain-text-splitters==0.2.2
 langserve==0.2.3
 gpt4all
+
+
+# PDF EXTRACTION
+pdf2image==1.17.0
