@@ -31,9 +31,12 @@ class pdfTextExtractor():
             except:
                 pass
             pdf_text = self.extract_text_from_pdf(pdf_path, img_subdir)
+            # Writes pdf_text
+            pdf_name = pdf_name.encode('utf-8')
             with open(self.data_file, 'a+') as file:
                 file.write(f'\n<{pdf_name}>\n')
                 for text in pdf_text:
+                    text = text.encode('utf-8')
                     file.write(f'\n{text}')
                 file.write(f'\n<\\{pdf_name}>\n')
         pass
