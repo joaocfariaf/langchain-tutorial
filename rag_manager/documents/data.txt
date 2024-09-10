@@ -1,2 +1,0 @@
-This text document is going to store a compilation of the text of all the pdfs stored in the 'pdf' folder.
-

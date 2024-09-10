@@ -2,5 +2,7 @@
 __pycache__/
 
 ### Private Data ### 
-rag_manager/documents/pdf/
-rag_manager/documents/data.txt
+rag-documents/pdf/.
+rag-documents/pdf/script-generated/img/.
+rag-documents/pdf/script-generated/data.txt
+

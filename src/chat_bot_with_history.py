@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from chat_bot import chatBot, DEFAULT_MODEL
-from sessions_manager.sessions_manager import sessionsManager
+from src.sessions_manager import sessionsManager
 
 DEFAULT_INITIAL_SYS_MSG = (
     "You are a very polite assistant. Answer with the best maners."
