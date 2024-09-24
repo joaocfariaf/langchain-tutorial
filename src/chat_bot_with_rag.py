@@ -16,7 +16,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 
 from openai import OpenAI
-from langchain_ollama import OllamaEmbeddings
+#from langchain_ollama import OllamaEmbeddings
+from langchain_openai import OpenAIEmbeddings
+
+
+
 
 class chatBotWithRAG(chatBot):
 
@@ -33,12 +37,14 @@ class chatBotWithRAG(chatBot):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
         
-        # GPT4AL NAO EH LOCAL
-        local_embeddings = GPT4AllEmbeddings()
-        #OllamaEmbeddings(
-        #    base_url="http://localhost:1234/v1",
-        #    model="CompendiumLabs/bge-large-en-v1.5-gguf",
-        #)#
+        # GPT4ALL NAO EH LOCAL
+        local_embeddings = OpenAIEmbeddings(
+            check_embedding_ctx_length = False,
+            openai_api_key = "lm-studio",
+            openai_api_base = "http://localhost:1234/v1", 
+            model = "CompendiumLabs/bge-large-en-v1.5-gguf"#"nomic-ai/nomic-embed-text-v1.5-GGUF"
+        )
+        
         vectorstore = Chroma.from_documents(
             documents=splits, 
             embedding=local_embeddings
